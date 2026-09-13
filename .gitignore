@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+*.so
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Third-party clones the README creates in the repo root
+Grounded-SAM-2/
+cloned-gaussian-splatting/
+
+# Model weights: SAM 2 + GroundingDINO checkpoints and trained MfM / RfD weights
+checkpoints/
+gdino_checkpoints/
+*.pt
+*.pth
+*.ckpt
+
+# Generated data: converted episodes (3D process) and augmented episodes + videos
+data/
+data_episodes/
+data_episodes_augmented/
+
+# Run products: training, validation and rendering outputs
+outputs/
+
+# Logs and scratch
+*.log
+logs/
+debug_*
+diagnostic_*

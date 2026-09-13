@@ -1,0 +1,94 @@
+# MfM (Material from Motion) training. Owned by train_MfM.py.
+# The names `refiner` and `Refiner`, here and in the code, both refer to MfM.
+
+dataset:
+  # From run_recipe.py. Split by index: first 80% trains, last 20% validates.
+  train_roots:
+  - data_episodes_augmented/episodes/*_<group>/episode_<train_range>
+  validation_roots:
+  - data_episodes_augmented/episodes/*_<group>/episode_<val_range>
+model:
+  hidden: 128
+  graph_unet_k: 8
+  graph_unet_pool: fps
+  graph_unet_ratios:
+  - 1.0
+  - 0.5
+  - 0.25
+  edge_feature: canonical_length_only
+  edge_direction: false
+  fixed_tracked_mask: false
+  use_persistent_tracks: true
+  persistent_track_use_motion_valid: true
+  tracked_disp_mode: canonical
+  control_disp_mode: absolute
+  max_controls: 4
+  tracked_disp_scale: 33.0
+  tracked_mask_scale: 1.0
+  control_vec_scale: 1.0
+  control_disp_scale: 33.0
+  canonical_bands: 4
+  tracked_bands: 16
+  attention_window: 9
+  temporal_conv: 9
+  initial_material_confidence_bias: 0.0
+  evidence_aggregation: true
+  evidence_tracked_weight: 8.0
+  evidence_control_weight: 4.0
+  evidence_control_radius: 0.04
+  log_E_min: 5.0
+  log_E_max: 11.0
+  nu_min: 0.05
+  nu_max: 0.45
+  graph_aggregation_chunks: 10
+train:
+  seed: 0
+  device: cuda
+  # Run directory, stamped by hand at launch: outputs/MfM/train/YYYYMMDD_hhmm.
+  output_dir: outputs/MfM/train/YYYYMMDD_hhmm
+  epochs: 2000
+  lr: 0.0001
+  final_lr: 0.0001
+  lr_warmup_epochs: 0
+  warmup_start_lr: 0.0001
+  lr_decay_start: 0
+  lr_decay_end: 0
+  weight_decay: 0.01
+  update_every: 10
+  tbptt_chunks: 4
+  batch_size: 4
+  batch_grouping: same_source
+  source_group_size: 64
+  supervision_fraction: 1.0
+  checkpoint_every: 10
+  best_checkpoint_metric: logE_shape
+  log_every_epochs: 1
+  save_latest_every_epoch: true
+  init_from: null
+  resume_from: null
+  validation_every: 10
+  shuffle: true
+  augment_z_rotation: true
+  tracking_dropout: 0.0
+  tracking_jitter_std: 0.007
+  use_source_motion_valid: true
+  temporal_crop_fraction: 0.0
+  cosine_decay: true
+loss:
+  material_weight: 1.0
+  material_confidence_log_weight: 0.2
+  plasticity_weight: 0.1
+material_guess:
+  mode: uniform
+  log_E_range:
+  - 7.66
+  - 7.66
+  nu_range:
+  - 0.363
+  - 0.363
+  log_E_clamp_range:
+  - 5.0
+  - 12.0
+  nu_clamp_range:
+  - 0.05
+  - 0.45

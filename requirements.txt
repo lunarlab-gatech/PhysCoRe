@@ -1,0 +1,40 @@
+# PhysCoRe pip dependencies.
+#
+# PyTorch, PyTorch3D and Grounded-SAM-2 are NOT here: each needs its own
+# install command. See the environment setup section of README.md for the order.
+
+# Core
+numpy
+scipy
+scikit-image
+matplotlib
+tqdm
+omegaconf
+pyyaml
+trimesh
+einops
+warp-lang
+imageio
+imageio-ffmpeg
+open3d
+pillow
+flow_vis
+
+# Gaussian-splat rendering
+plyfile
+kornia
+gsplat==1.4.0
+
+# Segmentation and tracking support.
+# NOTE: keep contrib only — supervision pulls base opencv-python, which shadows
+# cv2.aruco. README.md has the uninstall/reinstall step that repairs it.
+opencv-contrib-python
+supervision
+transformers==4.46.3
+timm
+yapf
+pycocotools
+
+# Build dependencies for the PyTorch3D source install
+fvcore
+iopath
