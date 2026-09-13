@@ -1,0 +1,94 @@
+# MfM confidence -> dynamic 3DGS video. Owned by render_MfM_confidence_3dgs.py.
+# Needs `validate_MfM.py --save-rollout` on the same checkpoint and episode.
+
+render:
+  checkpoint: checkpoints/<MfM_checkpoint>.pt # must be the one that produced traj_path
+  episode_root: data_episodes/<dataset>/<case_name>/episode_0000
+  gs_dir: gaussian_output/<dataset>/<case_name>/<gs_run>
+  traj_path: outputs/MfM/val/YYYYMMDD_hhmm/validation_episode_0000_trajectory.pt
+  out_dir: outputs/MfM_conf_overlay/<case_name>_YYYYMMDD_hhmm   # IS the run dir; stamp by hand
+  name: null
+  device: cuda
+  mem_fraction: 0.0
+
+  overlay_on_rgb: true
+  rgb_root: null
+  overlay_alpha_gain: 1.0
+  overlay_bg_fade: 0.4
+  overlay_front_opacity: 0.95
+
+  channels: null
+  cmap: viridis
+  norm_q: 0.99               # used only when norm_hi is null
+  norm_hi: 2.5               # tune per case; pin it to compare runs
+  midpoint_only: false
+  running_max: false
+  warmup_frames: 30          # settles the recurrent state; 0 = off, and the video opens bright
+
+  iteration: 10000
+  opacity_threshold: 0.01
+  bg_dist_threshold: 0.03
+  knn_k: 16                  # also drives the warp weights, so this is not a color-only knob
+  warp_chunk: 4096
+
+  fps: 30
+  video_frames: null
+  save_pngs: true
+  metadata_json: null
+  flip_z: null
+
+# Must match what validate_MfM.py ran with; defines the shift undone to put the
+# trajectory back in the Gaussians' frame.
+dataset:
+  real_world_domain_center: [0.5, 0.5, 0.2]
+  observation_views: all
+  observation_view_index: 0
+
+# Refiner architecture. Must match the checkpoint; the model is rebuilt from
+# this block before the weights load.
+model:
+  hidden: 128
+  graph_unet_k: 8
+  graph_unet_pool: fps
+  graph_unet_ratios:
+  - 1.0
+  - 0.5
+  - 0.25
+  edge_feature: canonical_length_only
+  edge_direction: false
+  fixed_tracked_mask: false
+  use_persistent_tracks: true
+  persistent_track_use_motion_valid: true
+  tracked_disp_mode: canonical
+  control_disp_mode: absolute
+  max_controls: 4
+  tracked_disp_scale: 33.0
+  tracked_mask_scale: 1.0
+  control_vec_scale: 1.0
+  control_disp_scale: 33.0
+  canonical_bands: 4
+  tracked_bands: 16
+  attention_window: 9
+  temporal_conv: 9
+  initial_material_confidence_bias: 0.0
+  evidence_aggregation: true
+  evidence_tracked_weight: 8.0
+  evidence_control_weight: 4.0
+  evidence_control_radius: 0.04
+  log_E_min: 5.0
+  log_E_max: 11.0
+  nu_min: 0.05
+  nu_max: 0.45
+  graph_aggregation_chunks: 10
+
+train:
+  seed: 0                    # seeds material_guess below only
+  update_every: 10           # K — MfM refreshes every K frames and holds in between
+
+# This model ignores the initial guess, so it has no effect on the render.
+material_guess:
+  mode: uniform
+  log_E_range: [7.66, 7.66]
+  nu_range: [0.363, 0.363]
+  log_E_clamp_range: [5.0, 12.0]
+  nu_clamp_range: [0.05, 0.45]

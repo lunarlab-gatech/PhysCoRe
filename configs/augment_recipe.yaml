@@ -1,0 +1,170 @@
+# Augmentation recipe for datagen/augment/run_recipe.py.
+#
+# Each group is self-contained: material sampling, rollout physics, rendering,
+# seed, and output count all live here.
+
+sources_root: data_episodes/<dataset>
+output_root: data_episodes_augmented/episodes
+viz_root: data_episodes_augmented/video
+device: cuda
+viz: true
+
+groups:
+  - name: elastic
+    mode: elastic
+    num_episodes: 70
+    seed_base: 42
+    material:
+      log_E:
+        mean_range: [6.0, 9.0]
+        std_range: [0.5, 1.5]
+        clamp: [5.0, 11.0]
+      nu:
+        mean_range: [0.15, 0.35]
+        std_range: [0.05, 0.15]
+        clamp: [0.05, 0.45]
+      noise:
+        freq_range: [0.5, 1.6]
+        octaves: 4
+        persistence: 0.55
+        lacunarity: 2.0
+    render:
+      max_observed_points: 0
+      particle_subset: shell
+      splat_radius: 1
+      depth_noise_std: 0.002
+      depth_noise_relative: 0.001
+      depth_dropout: 0.01
+      near_depth: 0.01
+      far_depth: 60.0
+    ground:
+      friction: 0.5
+      elasticity: 0.0
+      clearance_cells: 0.0
+    dataset:
+      rollout_steps: 25
+      real_world_domain_center: [0.5, 0.5, 0.2]
+    rollout:
+      use_batched_mpm: true
+      use_episode_sim_dt: true
+      default_dt: 0.000666
+      default_steps_per_frame: 2
+      num_grids: 32
+      clip_bound: 0.5
+      gravity: [0.0, 0.0, -9.8]
+      damping: 0.999
+      rho: 100.0
+      ground_height: 0.02
+      ground_surface: coulomb
+      ground_elasticity: 0.0
+      ground_friction: 0.5
+      ground_tangent_damping: 0.25
+      ground_static_velocity_threshold: 0.02
+      use_explicit_rigid_contact: true
+      use_episode_rigid_contact: true
+      rigid_surface_fps: 256
+      rigid_friction: 0.5
+      rigid_contact_margin: 0.02
+      rigid_velocity_blend: 0.9
+      rigid_stickiness: 1.0
+      rigid_strict_nonpenetration: true
+      rigid_projection_iterations: 2
+      rigid_projection_margin: 5.0e-05
+      elasticity_model: CorotatedElasticity
+      plasticity_model: IdentityPlasticity
+      manipulation_controller_grid_contact_radius: 0.08
+      manipulation_controller_grid_velocity_blend: 1.0
+      max_delta_velocity_norm: 0.05
+      correction_target_velocity_gain: 100.0
+      correction_target_velocity_damping: 1.2
+      correction_target_velocity_integral_gain: 40.0
+      correction:
+        mode: spring
+        dt_scale: 0.25
+        steps_per_frame_scale: 4
+        velocity_cap: 5.0
+        omega_n: 150.0
+        zeta: 2.5
+      apply_force_every_substep: true
+      max_force_norm: 5000.0
+
+  - name: plastic
+    mode: plastic
+    num_episodes: 10
+    seed_base: 44
+    material:
+      log_E:
+        mean_range: [10.0, 10.5]
+        std_range: [0.0, 0.0]
+        clamp: [10.0, 10.5]
+      nu:
+        mean_range: [0.30, 0.38]
+        std_range: [0.0, 0.0]
+        clamp: [0.30, 0.40]
+      noise:
+        freq_range: [1.6, 2.4]
+        octaves: 4
+        persistence: 0.55
+        lacunarity: 2.0
+    render:
+      max_observed_points: 0
+      particle_subset: shell
+      splat_radius: 1
+      depth_noise_std: 0.002
+      depth_noise_relative: 0.001
+      depth_dropout: 0.01
+      near_depth: 0.01
+      far_depth: 60.0
+    ground:
+      friction: 0.5
+      elasticity: 0.0
+      clearance_cells: 0.0
+    dataset:
+      rollout_steps: 25
+      real_world_domain_center: [0.5, 0.5, 0.2]
+    rollout:
+      use_batched_mpm: true
+      use_episode_sim_dt: true
+      default_dt: 0.000666
+      default_steps_per_frame: 2
+      num_grids: 32
+      clip_bound: 0.5
+      gravity: [0.0, 0.0, -9.8]
+      damping: 0.999
+      rho: 100.0
+      ground_height: 0.02
+      ground_surface: coulomb
+      ground_elasticity: 0.0
+      ground_friction: 0.5
+      ground_tangent_damping: 0.25
+      ground_static_velocity_threshold: 0.02
+      use_explicit_rigid_contact: true
+      use_episode_rigid_contact: true
+      rigid_surface_fps: 256
+      rigid_friction: 0.5
+      rigid_contact_margin: 0.02
+      rigid_velocity_blend: 0.9
+      rigid_stickiness: 1.0
+      rigid_strict_nonpenetration: true
+      rigid_projection_iterations: 2
+      rigid_projection_margin: 5.0e-05
+      elasticity_model: CorotatedElasticity
+      plasticity_model: VonMisesPlasticity
+      plasticity_kwargs:
+        VonMisesPlasticity:
+          sigma_y: 200.0
+      manipulation_controller_grid_contact_radius: 0.08
+      manipulation_controller_grid_velocity_blend: 1.0
+      max_delta_velocity_norm: 0.05
+      correction_target_velocity_gain: 100.0
+      correction_target_velocity_damping: 1.2
+      correction_target_velocity_integral_gain: 40.0
+      correction:
+        mode: spring
+        dt_scale: 0.25
+        steps_per_frame_scale: 4
+        velocity_cap: 5.0
+        omega_n: 150.0
+        zeta: 2.5
+      apply_force_every_substep: true
+      max_force_norm: 5000.0

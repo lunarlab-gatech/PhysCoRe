@@ -1,0 +1,183 @@
+# RfD (Residual from Dynamics) validation sweep. Owned by validate_RfD.py.
+# `gvc` = legacy RfD, `refiner` = MfM. train.output_dir must match train_RfD.yaml;
+# every checkpoint there is scored on the held-out second half of each episode.
+
+dataset:
+  train_roots:
+    - data_episodes/<dataset>/*/episode_0000
+  validation_roots:
+    - data_episodes/<dataset>/*/episode_0000
+  rollout_steps: 25
+  cache_size: 1
+  real_world_domain_center: [0.5, 0.5, 0.2]
+  observation_views: all
+  observation_view_index: 0
+
+# MPM rollout physics. Identical to configs/train_RfD.yaml, base radius and
+# per-case overrides alike, so each case is scored as it was adapted.
+rollout:
+  use_batched_mpm: true
+  use_episode_sim_dt: true
+  default_dt: 0.000666
+  default_steps_per_frame: 2
+  num_grids: 32
+  clip_bound: 0.5
+  gravity: [0.0, 0.0, -9.8]
+  damping: 0.999
+  rho: 100.0
+  ground_height: 0.02
+  ground_surface: coulomb
+  ground_elasticity: 0.0
+  ground_friction: 0.5
+  ground_tangent_damping: 0.25
+  ground_static_velocity_threshold: 0.02
+  use_explicit_rigid_contact: true
+  use_episode_rigid_contact: true
+  rigid_surface_fps: 256
+  rigid_friction: 0.5
+  rigid_contact_margin: 0.02
+  rigid_velocity_blend: 0.9
+  rigid_stickiness: 1.0
+  rigid_strict_nonpenetration: true
+  rigid_projection_iterations: 2
+  rigid_projection_margin: 5.0e-05
+  elasticity_model: CorotatedElasticity
+  plasticity_model: IdentityPlasticity
+  manipulation_controller_grid_contact_radius: 0.04
+  manipulation_controller_grid_velocity_blend: 1.0
+  max_delta_velocity_norm: 0.05
+  correction_target_velocity_gain: 100.0
+  correction_target_velocity_damping: 1.2
+  correction_target_velocity_integral_gain: 40.0
+  correction:
+    mode: spring
+    dt_scale: 0.25
+    steps_per_frame_scale: 4
+    velocity_cap: 5.0
+    omega_n: 150.0
+    zeta: 2.5
+  apply_force_every_substep: true
+  max_force_norm: 5000.0
+
+# Per-case rollout overrides, keyed by the case (parent directory) name. These
+# match configs/train_RfD.yaml, so each case is scored as it was adapted.
+per_sample_rollout_config:
+  double_squeeze_plastic:
+    manipulation_controller_grid_contact_radius: 0.08  # tune per case (scene-dependent)
+    plasticity_model: VonMisesPlasticity
+    plasticity_kwargs:
+      VonMisesPlasticity:
+        sigma_y: 200.0
+  double_stretch_bear:
+    manipulation_controller_grid_contact_radius: 0.08  # tune per case (scene-dependent)
+    plasticity_model: VonMisesPlasticity
+    plasticity_kwargs:
+      VonMisesPlasticity:
+        sigma_y: 200.0
+  double_stretch_bear_1:
+    # Radius only, so this case keeps the base IdentityPlasticity.
+    manipulation_controller_grid_contact_radius: 0.06
+  double_stretch_plastic:
+    manipulation_controller_grid_contact_radius: 0.08  # tune per case (scene-dependent)
+    plasticity_model: VonMisesPlasticity
+    plasticity_kwargs:
+      VonMisesPlasticity:
+        sigma_y: 200.0
+  single_lift_rope:
+    manipulation_controller_grid_contact_radius: 0.03  # tune per case (scene-dependent)
+    plasticity_model: VonMisesPlasticity
+    plasticity_kwargs:
+      VonMisesPlasticity:
+        sigma_y: 200.0
+  single_push_rope:
+    manipulation_controller_grid_contact_radius: 0.02  # tune per case (scene-dependent)
+    plasticity_model: VonMisesPlasticity
+    plasticity_kwargs:
+      VonMisesPlasticity:
+        sigma_y: 200.0
+
+# Refiner (MfM) architecture. The checkpoint carries no embedded cfg, so the
+# model is built from this block and loaded strictly. Keep it in sync with
+# configs/train_RfD.yaml and gvc.refiner_checkpoint.
+model:
+  spatial: graph_unet
+  temporal: conv_gru_fusion
+  hidden: 128
+  layers: 4
+  k: 8
+  graph_unet_k: 8
+  graph_unet_pool: fps
+  graph_unet_ratios: [1.0, 0.5, 0.25]
+  edge_feature: canonical_length_only
+  edge_direction: false
+  input_mode: observed_control
+  fixed_tracked_mask: false
+  use_persistent_tracks: true
+  persistent_track_use_motion_valid: true
+  tracked_disp_mode: canonical
+  control_disp_mode: absolute
+  max_controls: 4
+  observed_drop_canonical: false
+  tracked_disp_scale: 33.0
+  tracked_mask_scale: 1.0
+  control_vec_scale: 1.0
+  control_disp_scale: 33.0
+  coord_bands: 16
+  canonical_bands: 4
+  tracked_bands: 16
+  control_bands: 1
+  attention_window: 9
+  attention_heads: 4
+  temporal_conv: 9
+  use_material: false
+  use_correction: false
+  use_correction_mask: false
+  use_velocity: false
+  use_F: false
+  use_material_confidence: true
+  separate_confidence: true
+  detached_confidence: false
+  initial_material_confidence_bias: 0.0
+  aggregate_controls: true
+  evidence_aggregation: true
+  evidence_tracked_weight: 8.0
+  evidence_control_weight: 4.0
+  evidence_control_radius: 0.04
+  log_E_min: 5.0
+  log_E_max: 11.0
+  nu_min: 0.05
+  nu_max: 0.45
+  graph_aggregation_chunks: 10
+  use_decomposed_material: false
+
+# RfD, still spelled gvc here.
+gvc:
+  base_channels: 32
+  levels: 2
+  max_delta_v: 0.05
+  h: 10                    # corrector fires every h MPM substeps
+  warmup_fraction: 0.5     # first-half boundary, shared with configs/train_RfD.yaml
+  refiner_checkpoint: checkpoints/<MfM_checkpoint>.pt
+
+train:
+  seed: 42
+  device: cuda
+  # Run directory of the training run being validated. Must equal
+  # train.output_dir in configs/train_RfD.yaml, or the sweep aborts with
+  # "checkpoints dir not found".
+  output_dir: outputs/RfD/YYYYMMDD_hhmm
+  update_every: 10         # k = window size in camera frames
+  viz_every: 20
+  viz_fps: 30
+  viz_max_controls: 16
+
+loss:
+  chamfer_weight: 1.0
+  tracked_l2_weight: 1.0
+
+material_guess:
+  mode: uniform
+  log_E_range: [7.66, 7.66]
+  nu_range: [0.363, 0.363]
+  log_E_clamp_range: [5.0, 12.0]
+  nu_clamp_range: [0.3, 0.43]
